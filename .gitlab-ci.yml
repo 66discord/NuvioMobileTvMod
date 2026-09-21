@@ -1,0 +1,38 @@
+image: eclipse-temurin:17-jdk
+
+stages:
+  - build
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  ANDROID_HOME: "$CI_PROJECT_DIR/android-sdk"
+  ANDROID_SDK_ROOT: "$CI_PROJECT_DIR/android-sdk"
+
+cache:
+  key: "gradle-$CI_COMMIT_REF_SLUG"
+  paths:
+    - .gradle/
+    - ~/.gradle/caches/
+    - ~/.gradle/wrapper/
+
+build_debug_apk:
+  stage: build
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends wget unzip git ca-certificates
+    - mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+    - wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -O /tmp/cmdline-tools.zip
+    - unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+    - mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+    - export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+    - yes | sdkmanager --licenses >/dev/null || true
+    - sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+    - chmod +x gradlew
+  script:
+    - ./gradlew :androidApp:assembleFullDebug --stacktrace
+  artifacts:
+    name: "NuvioMobileTvMod-$CI_COMMIT_SHORT_SHA"
+    when: always
+    expire_in: 7 days
+    paths:
+      - androidApp/build/outputs/apk/**/*.apk
