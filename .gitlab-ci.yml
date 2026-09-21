@@ -1,0 +1,37 @@
+stages:
+  - build
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  ANDROID_SDK_ROOT: "/opt/android-sdk"
+  ANDROID_HOME: "/opt/android-sdk"
+
+cache:
+  key: gradle
+  paths:
+    - .gradle/caches/
+    - .gradle/wrapper/
+
+android_debug_apk:
+  stage: build
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-17-jdk wget unzip git
+    - mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+    - wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -O /tmp/cmdline-tools.zip
+    - unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+    - mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+    - export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+    - yes | sdkmanager --licenses >/dev/null || true
+    - sdkmanager "platform-tools" "platforms;android-37" "build-tools;37.0.0"
+    - chmod +x ./gradlew
+  script:
+    - ./gradlew --no-daemon --stacktrace assembleFullDebug
+  artifacts:
+    name: "NuvioMobileTvMod-debug-$CI_COMMIT_SHORT_SHA"
+    expire_in: 14 days
+    paths:
+      - androidApp/build/outputs/apk/full/debug/*.apk
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
