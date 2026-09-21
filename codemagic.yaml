@@ -1,0 +1,13 @@
+workflows:
+  android-tvmod-debug:
+    name: NuvioMobile TV Mod Android Debug
+    instance_type: linux_x2
+    environment:
+      java: 17
+    scripts:
+      - name: Build Android debug APK
+        script: |
+          chmod +x gradlew
+          ./gradlew :androidApp:assembleFullDebug --stacktrace
+    artifacts:
+      - androidApp/build/outputs/apk/**/*.apk
